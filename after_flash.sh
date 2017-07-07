@@ -24,4 +24,14 @@ sdb shell rm -rf /tmp/packages
 #LORA
 ./LORA/lora.sh
 
+# Systemd service files
+sdb push ./dist/systemd-services/* /usr/lib/systemd/system/
 
+# enabling and starting systemd services
+for systemd_unit in ./dist/systemd-services/*; do
+    stripped_filename=${systemd_unit##*/}
+    extension="${stripped_filename##*.}"
+    systemd_unit="${stripped_filename%.*}"
+    sdb shell systemctl enable ${systemd_unit}
+    sdb shell systemctl start ${systemd_unit}
+done
