@@ -1,0 +1,8 @@
+[확인 내용]
+- no-composition 기능이 다른 profile에는 enable이 되어 있는데, common profile에는 disable상태임.
+- e_comp.cfg 의 configuration을 수정(nocomp_fs = 1, hwc = 1)해서 device itc/utc 동작 pass확인.
+
+[common profile 적용 방안]
+- 임수찬책임님과 논의해서 e_comp.cfg를 artik향으로 해서 plug-in patch로 적용하도록 협의 함.
+(common용으로 전체 적용은 안되므로 artik용으로만 적용해야 해서 patch로 진행.)
+- target마다 variation을 하기 힘들므로 run-time에 configuration할 수 있도록 추후 장기 방안 검토 필요.
