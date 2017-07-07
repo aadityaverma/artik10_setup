@@ -21,7 +21,9 @@ sdb shell rpm -Uvh /tmp/packages/openssh-6.6p1-3.5.armv7l.rpm
 echo -e "\n\Removing rpms from target pc\n"
 sdb shell rm -rf /tmp/packages
 
+sdb push ./packages/toybox-armv7l /usr/bin
+sdb shell rm /usr/bin/toybox
+sdb ln -s /usr/bin/toybox-armv7l /usr/bin/toybox
+
 #LORA
 ./LORA/lora.sh
-
-
