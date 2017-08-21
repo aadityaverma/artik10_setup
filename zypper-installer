@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+#title          :artik_tizen_zypper_install.sh
+#description    :This script installs deps for Zypper package manager in Tizen on Artik
+#author         :Tatyana Volkova (volkova.t@samsung.com)
+#date           :20170605
+#version        :0.1
+#usage          :./artik_tizen_zypper_install.sh
+#notes          :
+#bash_version   :4.3.48(1)-release
+#============================================================================
+
+# This script downloads and installs the packages needed to install Zypper package manager onto a newly installed Tizen OS.
+# The target computer is Samsung Artik (tested on 7 & 10) with Tizen v.3.0.
+# It should be run on host PC with Linux, which is connected to the Internet and connected to Artik computer via LAN
+# All the necessary packages weigh about 3 Mb total.
+#
+# Before running this script, you should do:
+# sdb connect IP_ADDRESS
+# where IP_ADDRESS is Artik's address in LAN (can be found using ifconfig on Artik)
+# After launching the script, you do "zypper update"
+# Then you can simply "zypper install" package name. It will install any package from the repo with all dependencies.
+
+__BASE_TIZEN_REPO="https://download.tizen.org/releases/milestone/tizen"
+__TIZEN_VERSION="3.0.m2"
+__ARCH="armv7l"
+
+__TEMP_DIR="/tmp/artik-setup/cache"
+__PACKAGES=(
+    "bzip2-1.0.6-1.5.${__ARCH}.rpm"
+    "libsolv-0.6.4-3.4.${__ARCH}.rpm"
+    "libsolv-tools-0.6.4-3.4.${__ARCH}.rpm"
+    "pacrunner-0.7-3.5.${__ARCH}.rpm"
+    "pacrunner-libproxy-0.7-3.5.${__ARCH}.rpm"
+    "lsof-4.87-3.3.${__ARCH}.rpm"
+    "libzypp-14.27.0-3.6.${__ARCH}.rpm"
+    "libaugeas-1.3.0-3.6.${__ARCH}.rpm"
+    "zypper-1.11.11-3.5.${__ARCH}.rpm"
+)
+
+##########################################################
+# ~~  Helpers  ~~ ########################################
+##########################################################
+
+_banner() {
+    local _len
+    local _ch
+    local _console_len
+    _console_len=$(tput cols)
+    _ch="~"
+
+    if [[ ${_console_len} -lt 40 ]]; then
+        _len=${_console_len}
+    else
+        _len=40
+    fi
+
+    printf '%*s\n' "$_len" | tr ' ' "$_ch"
+}
+
+_print_with_banner() {
+    _banner
+    printf '%s\n' "$1"
+    _banner
+}
+
+_print_with_indent() {
+    printf '\t➜ %s\n' "$1"
+}
+
+##########################################################
+# ~~  Functions ~~ #######################################
+##########################################################
+
+_prepare_artik() {
+    sdb connect "$1"
+    sdb root on
+}
+
+_fetch_packages() {
+    mkdir -p ${__TEMP_DIR}
+    for __file in ${__PACKAGES|@|}; do
+        if [ ! -e "$__TEMP_DIR/$__file" ]; then
+            _print_with_indent "Downloading ${__file} from remote repo"
+            _download_rpm "$__file"
+        else
+            _print_with_indent "Fetching ${__file} from local cache"
+        fi
+    done
+}
+
+_download_rpm() {
+    local _repo_url
+    if [[ $1 =~ .*bzip.+.rpm ]]; then
+        _repo_url="/3.0.m2-base/latest/repos/arm"
+    else
+        _repo_url="/common_artik/latest/repos/arm-wayland"
+    fi
+    wget "$__BASE_TIZEN_REPO/$__TIZEN_VERSION/$_repo_url/packages/$__ARCH/$1"
+}
+
+_install_packages() {
+    local _remote_tmp_dir
+    _remote_tmp_dir="/tmp/packages"
+    sdb shell mkdir -p "$_remote_tmp_dir"
+    for __pkg in ${__PACKAGES|@|}; do
+        sdb push "$__TEMP_DIR/$__pkg" "$_remote_tmp_dir"
+        sdb shell rpm -Uvh "$_remote_tmp_dir/$__pkg"
+    done
+    sdb shell rm -rf "$_remote_tmp_dir"
+}
+
+_zypper_add_repos() {
+    declare -A __repos
+    # shellcheck disable=2154
+    __repos[Base]="3.0.m2-base/latest/repos/arm"
+    # shellcheck disable=2154
+    __repos[Common]="common_artik/latest/repos/arm-wayland"
+
+    for __repo in "${!__repos[@]}"; do
+        local __repo_url
+        __repo_url="$__BASE_TIZEN_REPO/$__TIZEN_VERSION/${__repos[$__repo]}"
+        sdb shell zypper ar "$__repo_url $__repo"
+    done
+}
+
+_prepare_tizen
+_print_with_banner "Downloading packages to install zypper"
+_fetch_packages
+_print_with_banner "Uploading and installing packages to Artik"
+_install_packages
+_print_with_banner "Setting up repositories location"
+_zypper_add_repos
+
+#after installing zypper we should tell him the path to repositories
+
+
+#delete all unnecessary packets from target pc
+#echo -e "\n\Removing rpms from target pc\n"
+#rm *.rpm
