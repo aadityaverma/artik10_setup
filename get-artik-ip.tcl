@@ -7,7 +7,9 @@ set opts "cs8 ixoff"
 set user "root"
 set pass "tizen"
 
-set prompt "(%|#|\\$|root:~>)$"
+set tizen_3_0_m3_prompt "root:~> "
+
+set prompt "(%|#|\\$|$tizen_3_0_m3_prompt)$"
 
 set str {}
 
@@ -23,7 +25,7 @@ expect "Password:" {
     send -- "${pass}\r"
 }
 
-expect "root:~>" {
+expect -re $prompt {
     send -- "ip -f inet addr show\r"
 }
 
