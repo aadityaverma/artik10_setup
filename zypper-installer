@@ -20,6 +20,8 @@
 # After launching the script, you do "zypper update"
 # Then you can simply "zypper install" package name. It will install any package from the repo with all dependencies.
 
+set -euo pipefail
+
 __BASE_TIZEN_REPO="https://download.tizen.org/releases/milestone/tizen"
 __TIZEN_VERSION="3.0.m2"
 __ARCH="armv7l"
@@ -72,13 +74,14 @@ _print_with_indent() {
 ##########################################################
 
 _prepare_artik() {
+    ./get-artik-ip.tcl "$1"
     sdb connect "$1"
     sdb root on
 }
 
 _fetch_packages() {
     mkdir -p ${__TEMP_DIR}
-    for __file in ${__PACKAGES|@|}; do
+    for __file in "${__PACKAGES[@]}"; do
         if [ ! -e "$__TEMP_DIR/$__file" ]; then
             _print_with_indent "Downloading ${__file} from remote repo"
             _download_rpm "$__file"
@@ -102,7 +105,7 @@ _install_packages() {
     local _remote_tmp_dir
     _remote_tmp_dir="/tmp/packages"
     sdb shell mkdir -p "$_remote_tmp_dir"
-    for __pkg in ${__PACKAGES|@|}; do
+    for __pkg in "${__PACKAGES[@]}"; do
         sdb push "$__TEMP_DIR/$__pkg" "$_remote_tmp_dir"
         sdb shell rpm -Uvh "$_remote_tmp_dir/$__pkg"
     done
@@ -123,13 +126,19 @@ _zypper_add_repos() {
     done
 }
 
-_prepare_tizen
-_print_with_banner "Downloading packages to install zypper"
-_fetch_packages
-_print_with_banner "Uploading and installing packages to Artik"
-_install_packages
-_print_with_banner "Setting up repositories location"
-_zypper_add_repos
+_main() {
+    _prepare_tizen
+    _print_with_banner "Downloading packages to install zypper"
+    _fetch_packages
+    _print_with_banner "Uploading and installing packages to Artik"
+    _install_packages
+    _print_with_banner "Setting up repositories location"
+    _zypper_add_repos
+}
+
+_main
+
+
 
 #after installing zypper we should tell him the path to repositories
 

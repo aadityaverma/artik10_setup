@@ -33,7 +33,7 @@ proc ::yapal::registerArgs { func arglist } {
 
     set parentns [string range [uplevel 1 [list namespace current]] 2 end]
     if { $parentns != "" } {
-       append caller $parentns :: $func
+       append caller ${parentns}::${func}
     } else {
        set caller $func
     }
