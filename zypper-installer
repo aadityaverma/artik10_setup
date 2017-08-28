@@ -20,7 +20,7 @@
 # After launching the script, you do "zypper update"
 # Then you can simply "zypper install" package name. It will install any package from the repo with all dependencies.
 
-set -euo pipefail
+set -uo pipefail
 
 __BASE_TIZEN_REPO="https://download.tizen.org/releases/milestone/tizen"
 __TIZEN_VERSION="3.0.m2"
@@ -39,16 +39,15 @@ __PACKAGES=(
     "zypper-1.11.11-3.5.${__ARCH}.rpm"
 )
 
-##########################################################
-# ~~  Helpers  ~~ ########################################
-##########################################################
+#####################
+## ~~  Helpers  ~~ ##
+#####################
 
 _banner() {
     local _len
-    local _ch
+    local _ch="~"
     local _console_len
     _console_len=$(tput cols)
-    _ch="~"
 
     if [[ ${_console_len} -lt 40 ]]; then
         _len=${_console_len}
@@ -56,17 +55,18 @@ _banner() {
         _len=40
     fi
 
-    printf '%*s\n' "$_len" | tr ' ' "$_ch"
+    printf "%*s\n" "$_len" | tr " " "$_ch"
 }
 
 _print_with_banner() {
     _banner
-    printf '%s\n' "$1"
+    printf "%s\n" "$1"
     _banner
 }
 
 _print_with_indent() {
-    printf '\t➜ %s\n' "$1"
+    local _symbol_arrow="➜"
+    printf "\t%s %s\n" "$_symbol_arrow" "$1"
 }
 
 ##########################################################
@@ -136,7 +136,7 @@ _main() {
     _zypper_add_repos
 }
 
-_main
+_main "$@"
 
 
 
