@@ -43,9 +43,10 @@ __PACKAGES=(
 ## ~~  Helpers  ~~ ##
 #####################
 
+# shellcheck disable=2120
 _banner() {
     local _len
-    local _ch="~"
+    local _ch=${1:-"~"}
     local _console_len
     _console_len=$(tput cols)
 
@@ -58,6 +59,7 @@ _banner() {
     printf "%*s\n" "$_len" | tr " " "$_ch"
 }
 
+# shellcheck disable=2119
 _print_with_banner() {
     _banner
     printf "%s\n" "$1"
@@ -69,12 +71,30 @@ _print_with_indent() {
     printf "\t%s %s\n" "$_symbol_arrow" "$1"
 }
 
-##########################################################
-# ~~  Functions ~~ #######################################
-##########################################################
+######################
+## ~~  Functions ~~ ##
+######################
 
+## shellcheck disable=2154
 _prepare_artik() {
-    ./get-artik-ip.tcl "$1"
+    local _if_name
+    local _ip_addr
+    local _subnet
+
+    local _IP_KEY="ip"
+    local _SUBNET_KEY="mask"
+
+    declare -a _ifaces
+    local _i=0
+
+    while read -r _if_name _ip_addr _subnet; do
+        declare -A "$_if_name"
+        _ifaces[$_i]=$_if_name
+        _if_name[$_IP_KEY]=$_ip_addr
+        _if_name[$_SUBNET_KEY]=$_subnet
+        (( _i++ ))
+    done  <"$(./get-artik-ip.tcl "$1")"
+
     sdb connect "$1"
     sdb root on
 }
@@ -115,9 +135,9 @@ _install_packages() {
 _zypper_add_repos() {
     declare -A __repos
     # shellcheck disable=2154
-    __repos[Base]="3.0.m2-base/latest/repos/arm"
+    __repos["Base"]="3.0.m2-base/latest/repos/arm"
     # shellcheck disable=2154
-    __repos[Common]="common_artik/latest/repos/arm-wayland"
+    __repos["Common"]="common_artik/latest/repos/arm-wayland"
 
     for __repo in "${!__repos[@]}"; do
         local __repo_url
@@ -136,7 +156,7 @@ _main() {
     _zypper_add_repos
 }
 
-_main "$@"
+[[ "$0" == "${BASH_SOURCE[0]}" ]] && _main "$@"
 
 
 
