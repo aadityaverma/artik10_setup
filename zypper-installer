@@ -77,10 +77,49 @@ _print_with_indent() {
 
 ## shellcheck disable=2154
 _prepare_artik() {
+    local _EXIT_STATUS_NO_IF=65
+    local _EXIT_STATUS_DEVICE_BUSY=66
+    local _EXIT_STATUS_NO_DEVICE=67
+
+    # Handilng exit status of `get-artik-ip.tcl` script
+    _prepare_artik::handle_exit_status() {
+        local _exit_code=$1
+
+        case $_exit_code in
+            $_EXIT_STATUS_NO_IF )
+                _prepare_artik::pretty_pre_dying "No such network interface"
+                ;;
+            $_EXIT_STATUS_DEVICE_BUSY )
+                _prepare_artik::pretty_pre_dying "Cannot connect"
+                ;;
+            $_EXIT_STATUS_NO_DEVICE )
+                _prepare_artik::pretty_pre_dying "No such device"
+                ;;
+        esac && exit 1
+    }
+
+    # Formated output of string
+    _prepare_artik::pretty_pre_dying() {
+        local _bold
+        local _normal
+
+        _normal=$(tput sgr0)
+        _bold=$(tput bold)
+        _red=$(tput setaf 1)
+
+        local _msg="${_bold}${_red}Can't get Artik's IP!${_normal}"
+        local _reason=$1
+        printf "%s Reason: %s. Exit...\n" "$_msg" "${_reason,}" 2>&1
+    }
+
+    # Retrieving board IP address. In case of failure we just exit with message
     local _ip_addr
-    if ! _ip_addr=$(./get-artik-ip.tcl "$1"); then
-        printf "Can't get Artik's IP! Exit...\n" 2>&1 && exit 1
+    _ip_addr=$(./get-artik-ip.tcl "$1")
+    local _exit_code=$?
+    if [[ $_exit_code ]]; then
+        _prepare_artik::handle_exit_status $_exit_code
     fi
+
     sdb connect "$_ip_addr"
     sdb root on
 }
@@ -132,7 +171,7 @@ _zypper_add_repos() {
     done
 }
 
-_main() {
+__main() {
     _prepare_tizen
     _print_with_banner "Downloading packages to install zypper"
     _fetch_packages
@@ -142,13 +181,10 @@ _main() {
     _zypper_add_repos
 }
 
+_main() {
+    LANG=en_US.UTF-8
+
+    _prepare_artik "$@"
+}
+
 [[ "$0" == "${BASH_SOURCE[0]}" ]] && _main "$@"
-
-
-
-#after installing zypper we should tell him the path to repositories
-
-
-#delete all unnecessary packets from target pc
-#echo -e "\n\Removing rpms from target pc\n"
-#rm *.rpm
