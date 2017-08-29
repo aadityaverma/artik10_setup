@@ -18,58 +18,79 @@ package require Expect
 set baud 115200
 set opts "cs8 ixoff"
 
-set user "root"
-set pass "tizen"
+set login_params [dict create user "root" pass "tizen"]
 
 set tizen_3_0_m3_prompt "root:~> "
 
-set prompt "(%|#|\\$|$tizen_3_0_m3_prompt)$"
+set re_prompt "(%|#|\\$|$tizen_3_0_m3_prompt)$"
 
 set str {}
 
-proc connect_device {} {
-    upvar device device
+array set sid {}
+
+proc isAlive {cmd sid} {
+    if {[catch {send -i $sid "$cmd\r"} err]} {
+        puts "error sending to $sid: $err"
+        exit 1
+    } else {
+        return false
+    }
+}
+
+proc connect_device {login_params device} {
     upvar baud baud
     upvar opts opts
-    upvar user user
-    upvar pass pass
-    upvar prompt prompt
+    upvar re_prompt re_prompt
 
-    spawn screen -S artik $device $baud $opts
+    upvar sid sid
+
+    set re_login_prompt     ".*artik login:"
+
+    set pat_pass_prompt     "Password:"
+    set pat_failed_login    "Login incorrect:"
+    set pat_invalid_path    "Cannot exec '$device': No such file or directory"
+    log_user 0
+
+    spawn -noecho screen -S artik $device $baud $opts
     set sid(server) $spawn_id
 
     send -- "\r"
     expect {
-        -re ".*artik login:" {
-            send -- "${user}\r"
+        -re $re_login_prompt {
+            send -- "[dict get $login_params user]\r"
             exp_continue
         }
-        "Password:" {
-            send -- "${pass}\r"
+        $pat_pass_prompt {
+            send -- "[dict get $login_params pass]\r"
         }
-        "Login incorrect:" {
-            send -- "${user}\r"
+        $pat_failed_login {
+            send -- "[dict get $login_params user]\r"
             sleep 0.1
-            send -- "${pass}\r"
+            send -- "[dict get $login_params pass]\r"
         }
-        -re $prompt {
+        -re $re_prompt {
             send -- "\r"
         }
+        $pat_invalid_path {
+            exit 67
+        }
+        timeout {
+            exit 66
+        }
     }
-    return $sid(server)
 }
 
 proc get_ips {} {
-    upvar screen_id screen_id
-    upvar prompt prompt
+    upvar sid(server) screen_id
+    upvar re_prompt re_prompt
     set spawn_id $screen_id
     set str {}
 
-    expect -re $prompt {
+    expect -re $re_prompt {
         send -- "ip -f inet addr show\r"
     }
 
-    expect -re $prompt {
+    expect -re $re_prompt {
         set matchTuples [regexp -all -inline {\d+\:\s(\w+)[^\n]*\n\s*inet\s*(\d+\.\d+\.\d+\.\d+)\/(\d+)[^\n]*} $expect_out(buffer)]
         foreach {group0 group1 group2 group3} $matchTuples {
             if {![regexp {^(?:lo).*} ${group1}]} {
@@ -81,7 +102,7 @@ proc get_ips {} {
 }
 
 proc disconnect_from_device {} {
-    upvar screen_id screen_id
+    upvar sid(server) screen_id
     set spawn_id $screen_id
 
     send -- "exit\r"
@@ -91,35 +112,32 @@ proc disconnect_from_device {} {
 }
 
 proc scratch_desirable_ip {ips_string} {
-    upvar prefferable_if if_name
+    upvar if_name prefferable_if
     array set ifaces {}
     set desirable_ip ""
-    puts $prefferable_if
 
     foreach {if_info} [split [string trim $ips_string "\n"] "\n"] {
-        set if_info_list [split $if_info]
-        dict set ifaces([lindex $if_info_list 0]) ip     [lindex $if_info_list 1]
-        dict set ifaces([lindex $if_info_list 0]) subnet [lindex $if_info_list 2]
+        lassign [split $if_info] if ip subnet
+        dict set ifaces($if) ip     $ip
+        dict set ifaces($if) subnet $subnet
     }
 
     if {[info exists ifaces($prefferable_if)]} {
         try {
-            set desirable_ip [dict get ifaces($prefferable_if) ip]
+            set desirable_ip [dict get $ifaces($prefferable_if) ip]
         } on error {msg options} {
-            exit 1
+            exit 65
         }
     } else {
-        exit 1
+        exit 65
     }
 
     return $desirable_ip
 }
 
-log_user 0
-
-set screen_id [connect_device]
+connect_device $login_params $device
 set ips [get_ips]
 disconnect_from_device
-puts [scratch_desirable_ip ips]
+puts [scratch_desirable_ip $ips]
 
 exit 0

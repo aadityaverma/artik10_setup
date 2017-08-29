@@ -77,25 +77,11 @@ _print_with_indent() {
 
 ## shellcheck disable=2154
 _prepare_artik() {
-    local _if_name
     local _ip_addr
-    local _subnet
-
-    local _IP_KEY="ip"
-    local _SUBNET_KEY="mask"
-
-    declare -a _ifaces
-    local _i=0
-
-    while read -r _if_name _ip_addr _subnet; do
-        declare -A "$_if_name"
-        _ifaces[$_i]=$_if_name
-        _if_name[$_IP_KEY]=$_ip_addr
-        _if_name[$_SUBNET_KEY]=$_subnet
-        (( _i++ ))
-    done  <"$(./get-artik-ip.tcl "$1")"
-
-    sdb connect "$1"
+    if ! _ip_addr=$(./get-artik-ip.tcl "$1"); then
+        printf "Can't get Artik's IP! Exit...\n" 2>&1 && exit 1
+    fi
+    sdb connect "$_ip_addr"
     sdb root on
 }
 
