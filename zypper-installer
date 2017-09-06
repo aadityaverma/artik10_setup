@@ -22,6 +22,13 @@
 
 set -uo pipefail
 
+# Terminal-agnostic variables: colors and style
+__TERM_NORMAL="$(tput sgr0)"
+__TERM_BOLD="$(tput bold)"
+__TERM_RED="$(tput setaf 1)"
+
+
+
 __BASE_TIZEN_REPO="https://download.tizen.org/releases/milestone/tizen"
 __TIZEN_VERSION="3.0.m2"
 __ARCH="armv7l"
@@ -100,23 +107,26 @@ _prepare_artik() {
 
     # Formated output of string
     _prepare_artik::pretty_pre_dying() {
-        local _bold
-        local _normal
-
-        _normal=$(tput sgr0)
-        _bold=$(tput bold)
-        _red=$(tput setaf 1)
+        local _normal=${__TERM_NORMAL}
+        local _bold=${__TERM_BOLD}
+        local _red=${__TERM_RED}
 
         local _msg="${_bold}${_red}Can't get Artik's IP!${_normal}"
         local _reason=$1
+
         printf "%s Reason: %s. Exit...\n" "$_msg" "${_reason,}" 2>&1
     }
 
+    local _device=${1:-}
+
     # Retrieving board IP address. In case of failure we just exit with message
+    # Disable shellcheck warning because we really knows that device path
+    # doesn't contain whitespaces
     local _ip_addr
-    _ip_addr=$(./get-artik-ip.tcl "$1")
+    # shellcheck disable=2086
+    _ip_addr=$(./get-artik-ip.tcl $_device)
     local _exit_code=$?
-    if [[ $_exit_code ]]; then
+    if [[ $_exit_code != 0 ]]; then
         _prepare_artik::handle_exit_status $_exit_code
     fi
 
