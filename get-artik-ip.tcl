@@ -62,7 +62,7 @@ proc setup {} {
     }
     regsub {(.*?)\|$} $re_os_info {\1)[\n\s.]*} re_os_info
 
-    log_user 1
+    log_user 0
 }
 
 proc connect_device {login_params device reverse_prompt} {
@@ -150,9 +150,7 @@ proc get_ips {} {
     }
 
     expect -re $re_prompt {
-        set matchTuples [regexp -all -inline {
-            \d+\:\s
-            (\w+)[^\n]*\n\s*inet\s*(\d+\.\d+\.\d+\.\d+)\/(\d+)[^\n]*} $expect_out(buffer)]
+        set matchTuples [regexp -all -inline {\d+\:\s(\w+)[^\n]*\n\s*inet\s*(\d+\.\d+\.\d+\.\d+)\/(\d+)[^\n]*} $expect_out(buffer)]
         foreach {group0 group1 group2 group3} $matchTuples {
             if {![regexp {^(?:lo).*} ${group1}]} {
                 set str "${str}${group1} ${group2} ${group3}\n"
