@@ -10,8 +10,8 @@ use File::Spec::Functions qw/splitpath/;
 use IO::File;
 use IO::Uncompress::Unzip qw//;
 
-use Local::File::Fetch;
-use Local::Term::Spinner;
+use File::Fetch;
+use Term::Spinner;
 
 $File::Fetch::WARN = 0;
 
