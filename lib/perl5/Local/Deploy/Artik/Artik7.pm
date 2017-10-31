@@ -11,7 +11,7 @@ use IO::File;
 use IO::Uncompress::Unzip qw//;
 
 use File::Fetch;
-use Term::Spinner;
+use Term::Spinner::Color;
 
 $File::Fetch::WARN = 0;
 
