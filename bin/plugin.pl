@@ -5,9 +5,10 @@ use warnings;
 use v5.10;
 
 use FindBin;
-use lib "$FindBin::Bin/../lib/perl5";
+use lib File::Spec->catdir($FindBin::Bin, '..', 'lib', 'perl5');
 
-use Local::Deploy::Artik::Artik7;
+use Script::Deploy;
 
-my $artik = Local::Deploy::Artik::Artik7->new();
-$artik->process_plugin;
+Script::Deploy->run();
+# use Deploy::Artik::Artik7;
+# Deploy::Artik::Artik7->new()->process_plugin()
