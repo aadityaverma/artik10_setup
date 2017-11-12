@@ -53,30 +53,6 @@ sub _initialize {
 
     (my $unzip_dir = $self->unzip_path()) =~ s{/.+$}{};
     make_path $self->dl_path, $unzip_dir;
-
-}
-
-use Attribute::Handlers;
-
-sub BeautyTerm : ATTR(CODE) {
-    my ($package, $typeglob, $func, $attr, $data) = @_;
-
-    my ($msg_start, %msgs_end) = shift @$data;
-    my %kwargs = @$data;
-    for my $msg ('msg_ok', 'msg_warn', 'msg_fail') {
-        if (exists $kwargs{$msg}) {
-            $msgs_end{$msg} = $kwargs{$msg};
-            delete $kwargs{$msg};
-        }
-    }
-    my $spin = Term::Spinner::Color::Beautyfied->new(%kwargs);
-    no strict 'refs';          ## no critic
-    no warnings 'redefine';    ## no critic
-    *{$typeglob} = sub {
-        $spin->auto_start($msg_start);
-        $func->(@_);
-        $spin->auto_ok($msgs_end{'msg_ok'});
-    };
 }
 
 ### Accessors
