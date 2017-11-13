@@ -53,6 +53,7 @@ sub _initialize {
 
     (my $unzip_dir = $self->unzip_path()) =~ s{/.+$}{};
     make_path $self->dl_path, $unzip_dir;
+<<<<<<< HEAD
 
 }
 
@@ -77,6 +78,8 @@ sub BeautyTerm : ATTR(CODE) {
         $func->(@_);
         $spin->auto_ok($msgs_end{msg_ok});
     };
+=======
+>>>>>>> 07a593db7e4fa7f889ff416020234adf53a07854
 }
 
 ### Accessors
