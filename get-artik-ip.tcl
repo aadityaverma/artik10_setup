@@ -2,6 +2,17 @@
 set default_if_name "eth0"
 set default_device "/dev/ttyUSB0"
 
+array set output_opts {}
+
+foreach opt $argv {
+    if {[string equal $opt --interactive]} {
+        set argv [lsearch -all -inline -not -exact $argv $opt]
+        set output_opts(is_interactive) true
+        incr argc -1
+        break
+    }
+}
+
 if {$argc == 1} {
     set device [lindex $argv 0]
     set if_name $default_if_name
@@ -95,6 +106,15 @@ proc connect_device {login_params device reverse_prompt} {
     set sid(server) $spawn_id
 
     set attempts 0
+
+    puts [exp_pid]
+	if {! [catch {exec ps [exp_pid]} std_out] == 0} { 
+	   puts "screen with [exp_pid] has been terminated"
+       exit 66
+	}
+
+    exec pgrep {^screen}
+
     send -- "\r"
     expect {
         -re $re_login_prompt {
@@ -128,6 +148,10 @@ proc connect_device {login_params device reverse_prompt} {
             return 0
         }
         $pat_invalid_path {
+            exit 67
+        }
+        $pat_screen_termed {
+            puts "In use!"
             exit 67
         }
         timeout {
@@ -192,6 +216,13 @@ proc scratch_desirable_ip {ips_string} {
     }
 
     return $desirable_ip
+}
+
+proc msg {message} {
+    upvar output_opts(is_interactive) interactivity
+    if {interactivity} {
+        puts message
+    }
 }
 
 setup
