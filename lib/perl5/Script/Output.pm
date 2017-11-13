@@ -4,7 +4,10 @@ use strict;
 use warnings;
 use 5.010001;
 
+our @_output_methods = ();
+
 BEGIN {
+    @_output_methods = qw! success warn fail wrapper_begin wrapper_end !;
     my $make_method = sub {
         my $impl_method = "_$_[0]_impl";
         return sub {
@@ -13,8 +16,7 @@ BEGIN {
         }
     };
 
-    my @methods = qw! success warn fail wrapper_begin wrapper_end !;
-    for my $m (@methods) {
+    for my $m (@_output_methods) {
         my $m_ref = $make_method->($m);
         no strict 'refs';       ## no critic
         *{__PACKAGE__ . "::$m"} = $m_ref;

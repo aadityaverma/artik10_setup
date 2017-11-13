@@ -9,8 +9,7 @@ use Carp;
 use parent qw/Script::Output/;
 
 BEGIN {
-    my @methods = qw! success warn fail wrapper_begin wrapper_end !;
-    for my $m (@methods) {
+    for my $m (@Script::Output::_output_methods) {
         use DDP; p __PACKAGE__;
         if (not __PACKAGE__->can($m)) {
             confess "Not impemented all methods!\n";
