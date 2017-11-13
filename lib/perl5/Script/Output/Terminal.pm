@@ -2,7 +2,7 @@ package Script::Output::Terminal;
 
 use strict;
 use warnings;
-use 5.010;
+use 5.010001;
 
 use Exporter 'import';
 our @EXPORT_OK = qw/BeautyTerm/;
@@ -15,7 +15,7 @@ sub wrap_output {
     my %msgs_end = ();
 
     my $msg_start = "OK";
-    $msgs_end{'msg_ok'} = "End OK";
+    $msgs_end{msg_ok} = "End OK";
 
     if ($beautyness) {
         use Term::Spinner::Color::Beautyfied;
@@ -23,7 +23,7 @@ sub wrap_output {
         seq => [ '[/] ', '[-] ', '[\] ', '[|] ' ]);
         $spin->auto_start($msg_start);
         @result = $obj->$method(@$paramsref);
-        $spin->auto_ok($msgs_end{'msg_ok'});
+        $spin->auto_ok($msgs_end{msg_ok});
     } else {
         @result = $obj->$method(@$paramsref);
     }
@@ -50,7 +50,7 @@ sub BeautyTerm : ATTR(CODE) {
     *{$typeglob} = sub {
         $spin->auto_start($msg_start);
         $func->(@_);
-        $spin->auto_ok($msgs_end{'msg_ok'});
+        $spin->auto_ok($msgs_end{msg_ok});
     };
 }
 

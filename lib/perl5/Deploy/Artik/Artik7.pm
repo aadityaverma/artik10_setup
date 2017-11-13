@@ -1,7 +1,7 @@
 package Deploy::Artik::Artik7;
 use strict;
 use warnings;
-use 5.010;
+use 5.010001;
 
 use Attribute::Handlers;
 use Carp;
@@ -27,7 +27,7 @@ sub new {
     my $self = {};
     bless $self, $class;
 
-    $self->{'board'} = "artik-710";
+    $self->{board} = "artik-710";
 
     _defaultize($self, \%params);
     _initialize($self, %params);
@@ -38,10 +38,10 @@ sub new {
 sub _defaultize {
     my ($self, $params) = @_;
 
-    $params->{'uri'} //=
+    $params->{uri} //=
 "https://s3-us-west-2.amazonaws.com/tizendriver/common_plugin_tizen3.0_artik7.zip";
-    $params->{'dl_path'} //= "/tmp/artik-builder/.cache";
-    $params->{'unzip_path'} //=
+    $params->{dl_path} //= "/tmp/artik-builder/.cache";
+    $params->{unzip_path} //=
         "/tmp/artik-builder/" . $self->board() . "/uncompressed";
 }
 
@@ -75,7 +75,7 @@ sub BeautyTerm : ATTR(CODE) {
     *{$typeglob} = sub {
         $spin->auto_start($msg_start);
         $func->(@_);
-        $spin->auto_ok($msgs_end{'msg_ok'});
+        $spin->auto_ok($msgs_end{msg_ok});
     };
 }
 
@@ -84,50 +84,50 @@ sub BeautyTerm : ATTR(CODE) {
 sub board {
     my ($self, $value) = @_;
     if (defined $value) {
-        $self->{'board'} = $value;
+        $self->{board} = $value;
         return $self;
     } else {
-        return $self->{'board'};
+        return $self->{board};
     }
 }
 
 sub uri {
     my ($self, $value) = @_;
     if (defined $value) {
-        $self->{'uri'} = $value;
+        $self->{uri} = $value;
         return $self;
     } else {
-        return $self->{'uri'};
+        return $self->{uri};
     }
 }
 
 sub dl_path {
     my ($self, $value) = @_;
     if (defined $value) {
-        $self->{'dl_path'} = $value;
+        $self->{dl_path} = $value;
         return $self;
     } else {
-        return $self->{'dl_path'};
+        return $self->{dl_path};
     }
 }
 
 sub unzip_path {
     my ($self, $value) = @_;
     if (defined $value) {
-        $self->{'unzip_path'} = $value;
+        $self->{unzip_path} = $value;
         return $self;
     } else {
-        return $self->{'unzip_path'};
+        return $self->{unzip_path};
     }
 }
 
 sub tizen_plugin_path {
     my ($self, $value) = @_;
     if (defined $value) {
-        $self->{'tizen_plugin_path'} = $value;
+        $self->{tizen_plugin_path} = $value;
         return $self;
     } else {
-        return $self->{'tizen_plugin_path'};
+        return $self->{tizen_plugin_path};
     }
 }
 
