@@ -30,6 +30,18 @@ sub new {
 #     $self->print_result("!!! Critical error! Exit...\n");
 # }
 
+sub next {
+  my $self = shift;
+  state $pos = 1;
+
+  print $self->{'bksp'} x $self->{'last_size'};
+  print "\e[2K" . "\r";
+  print colored("$self->{'seq'}[$pos]", $self->{'color'});
+
+  $pos = ++$pos % scalar @{$self->{'seq'}};
+  $self->{'last_size'} = length($self->{'seq'}[$pos]);
+}
+
 sub auto_start {
     my ($self, $msg) = @_;
     $msg //= "Long process...";

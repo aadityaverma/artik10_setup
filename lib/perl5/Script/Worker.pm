@@ -8,6 +8,25 @@ use Carp;
 
 use Scalar::Util qw/blessed/;
 
+BEGIN {
+    my $__generate_accessor = sub {
+        my ($field) = @_;
+        return sub {
+            my $self = shift;
+            return $self->{$field};
+        };
+    };
+
+    my %accessors = (
+        deployer    => 'deployer',
+        deploy_subs => 'deploy_subs',
+    );
+    for my $field (keys %accessors) {
+        no strict 'refs';       ## no critic
+        *{ __PACKAGE__ . "::$accessors{$field}" } = $__generate_accessor->($field);
+    }
+}
+
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -46,16 +65,18 @@ sub _initialize {
 
     $self->{beauty_output} = $kwargs{beauty_output};
 
-    eval "use $kwargs{deployer}";         ## no critic
+    eval "use $kwargs{deployer}";    ## no critic
     $self->{deployer} = $kwargs{deployer}->new(%{ $kwargs{deployer_params} });
 
     # Output handler.
-    if (my $class = blessed $kwargs{output} and
-        $kwargs{output}->isa('Script::Output')) {
+    if (my $class = blessed $kwargs{output}
+        and $kwargs{output}->isa('Script::Output'))
+    {
         $self->{output_handler} = $kwargs{output};
     } else {
-        eval "use Script::Output::Null";     ## no critic
-        $self->{output_handler}= Script::Output::Null->new();
+        my $null_handler = "Script::Output::Null";
+        eval "use $null_handler";    ## no critic
+        $self->{output_handler} = $null_handler->new();
     }
 
     $self->{deploy_steps} = $kwargs{deploy_steps};
@@ -71,8 +92,7 @@ sub run {
     use Script::Output::Terminal;
     for my $step (@{ $self->{deploy_steps} }) {
         Script::Output::Terminal->wrap_output(
-            $self->deployer(),
-            $step,
+            $self->deployer(), $step,
             $self->{deploy_attrs}->{$step},
             $self->{beauty_output}
         );
@@ -80,21 +100,8 @@ sub run {
 
 }
 
-
-    # msg_ok => "File downloaded at " . $self->deployer()->dl_path(),
-    # delay => 0.1,
-    # seq => [ '[/] ', '[-] ', '[\] ', '[|] ' ]
-
-### Accessors
-
-sub deployer {
-    my $self = shift;
-    return $self->{deployer};
-}
-
-sub deploy_subs {
-    my $self = shift;
-    return $self->{deploy_subs};
-}
+# msg_ok => "File downloaded at " . $self->deployer()->dl_path(),
+# delay => 0.1,
+# seq => [ '[/] ', '[-] ', '[\] ', '[|] ' ]
 
 1;

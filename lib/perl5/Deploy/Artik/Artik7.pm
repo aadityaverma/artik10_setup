@@ -16,6 +16,27 @@ use Term::Spinner::Color::Beautyfied qw//;
 
 $File::Fetch::WARN = 0;
 
+BEGIN {
+    my $__generate_accessor = sub {
+        my ($field) = @_;
+        return sub {
+            my ($self, $value) = @_;
+            if (defined $value) {
+                $self->{$field} = $value;
+                return $self;
+            } else {
+                return $self->{$field};
+            };
+        };
+    };
+
+    my @fields = qw/ board uri dl_path unzip_path tizen_plugin_path /;
+    for my $f (@fields) {
+        no strict 'refs';       ## no critic
+        *{ __PACKAGE__ . "::$f" } = $__generate_accessor->($f);
+    }
+}
+
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -77,58 +98,6 @@ sub BeautyTerm : ATTR(CODE) {
         $func->(@_);
         $spin->auto_ok($msgs_end{msg_ok});
     };
-}
-
-### Accessors
-
-sub board {
-    my ($self, $value) = @_;
-    if (defined $value) {
-        $self->{board} = $value;
-        return $self;
-    } else {
-        return $self->{board};
-    }
-}
-
-sub uri {
-    my ($self, $value) = @_;
-    if (defined $value) {
-        $self->{uri} = $value;
-        return $self;
-    } else {
-        return $self->{uri};
-    }
-}
-
-sub dl_path {
-    my ($self, $value) = @_;
-    if (defined $value) {
-        $self->{dl_path} = $value;
-        return $self;
-    } else {
-        return $self->{dl_path};
-    }
-}
-
-sub unzip_path {
-    my ($self, $value) = @_;
-    if (defined $value) {
-        $self->{unzip_path} = $value;
-        return $self;
-    } else {
-        return $self->{unzip_path};
-    }
-}
-
-sub tizen_plugin_path {
-    my ($self, $value) = @_;
-    if (defined $value) {
-        $self->{tizen_plugin_path} = $value;
-        return $self;
-    } else {
-        return $self->{tizen_plugin_path};
-    }
 }
 
 ### Methods

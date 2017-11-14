@@ -18,7 +18,16 @@ BEGIN {
 }
 
 sub new {
+    my ($class) = @_;
+    my $self = {};
 
+
+    bless $self, $class;
+    print STDERR "\n\n\nHi!\n\n";
+    if (not $self->can('_impl_success')) {
+        say "Cannot!"
+    } else { say "Can"};
+    return $self;
 }
 
 
