@@ -10,6 +10,8 @@ use Getopt::Long;
 
 sub run {
     my ($package) = @_;
+    use Script::Output::Terminal;
+    my $output = Script::Output::Terminal->new();
     my $worker = Script::Worker->new(
         beauty_output => 1,
         deployer      => "Deploy::Artik::Artik7",

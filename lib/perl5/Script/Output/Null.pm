@@ -10,25 +10,19 @@ use parent qw/Script::Output/;
 
 BEGIN {
     for my $m (@Script::Output::_output_methods) {
-        use DDP; p __PACKAGE__;
         if (not __PACKAGE__->can($m)) {
             confess "Not impemented all methods!\n";
         }
     }
 }
 
+my $instance = undef;
+
 sub new {
     my ($class) = @_;
     my $self = {};
-
-
-    bless $self, $class;
-    print STDERR "\n\n\nHi!\n\n";
-    if (not $self->can('_impl_success')) {
-        say "Cannot!"
-    } else { say "Can"};
-    return $self;
+    $instance = bless $self, $class unless $instance;
+    return $instance;
 }
-
 
 1;

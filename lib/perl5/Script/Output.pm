@@ -7,7 +7,7 @@ use 5.010001;
 our @_output_methods = ();
 
 BEGIN {
-    @_output_methods = qw/ success warn fail wrapper_begin wrapper_end /;
+    @_output_methods = qw/ info success warn fail wrapper_begin wrapper_end /;
 
     my $__generate_method = sub {
         my $impl_method = "_$_[0]_impl";

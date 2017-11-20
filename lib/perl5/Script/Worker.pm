@@ -46,18 +46,18 @@ sub new {
     return $self;
 }
 
+sub _defaultize {
+    my ($self, $kwargs_ref) = @_;
+
+    $kwargs_ref->{is_output_beauty} //= 0;
+}
+
 sub _validate {
     my ($self, $deploy_steps, $deploy_args, $output_attrs) = @_;
     croak "Invalid args in deploy_args: no such step in deploy_steps"
         if grep { not exists $deploy_steps->{$_} } keys %$deploy_args;
     croak "Invalid attributes in output_attrs: no such step in deploy_steps"
         if grep { not exists $deploy_steps->{$_} } keys %$output_attrs;
-}
-
-sub _defaultize {
-    my ($self, $kwargs_ref) = @_;
-
-    $kwargs_ref->{is_output_beauty} //= 0;
 }
 
 sub _initialize {
@@ -89,13 +89,8 @@ sub _initialize {
 sub run {
     my ($self) = @_;
 
-    use Script::Output::Terminal;
     for my $step (@{ $self->{deploy_steps} }) {
-        Script::Output::Terminal->wrap_output(
-            $self->deployer(), $step,
-            $self->{deploy_attrs}->{$step},
-            $self->{beauty_output}
-        );
+        $self->deployer()->$step($self->{deploy_attrs}->{$step});
     }
 
 }

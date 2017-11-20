@@ -4,10 +4,15 @@ use strict;
 use warnings;
 use 5.010001;
 
-use Exporter 'import';
-our @EXPORT_OK = qw/BeautyTerm/;
+use parent qw/Script::Output/;
 
-use Attribute::Handlers;
+BEGIN {
+    for my $m (@Script::Output::_output_methods) {
+        if (not __PACKAGE__->can($m)) {
+            confess "Not impemented all methods!\n";
+        }
+    }
+}
 
 sub wrap_output {
     my ($package, $obj, $method, $paramsref, $beautyness) = @_;
