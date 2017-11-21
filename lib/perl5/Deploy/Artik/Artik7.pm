@@ -1,10 +1,12 @@
 package Deploy::Artik::Artik7;
+
 use strict;
 use warnings;
 use 5.010001;
 
-use Attribute::Handlers;
 use Carp;
+use Attribute::Handlers;
+use Scalar::Util qw/blessed/;
 
 use File::Path qw/make_path/;
 use File::Spec::Functions qw/splitpath/;
@@ -49,8 +51,6 @@ sub new {
     my $self = {};
     bless $self, $class;
 
-    $self->{board} = "artik-710";
-
     _defaultize($self, \%params);
     _initialize($self, %params);
 
@@ -60,21 +60,22 @@ sub new {
 sub _defaultize {
     my ($self, $params) = @_;
 
+    $params->{board} = "artik-710";
+
     $params->{tizen_plugin_filename} //= "common_plugin_tizen3.0_artik7.zip";
     $params->{uri} //=
         "https://s3-us-west-2.amazonaws.com/tizendriver/"
-        . $params->tizen_plugin_filename();
+        . $params->{tizen_plugin_filename};
     $params->{dl_path} //= "/tmp/artik-builder/.cache";
     $params->{unzip_path} //=
-        "/tmp/artik-builder/" . $self->board() . "/uncompressed";
+        "/tmp/artik-builder/" . $params->{board} . "/uncompressed";
 
     # Get instance of null output handler, if not specified
-    if (not ( my $class = blessed $params->{output_handler}
-              and $params->{output_handler}->isa('Script::Output') ))
+    unless (my $class = blessed $params->{output_handler}
+        and $params->{output_handler}->isa('Script::Output'))
     {
-        my $null_handler = "Script::Output::Null";
-        eval "use $null_handler";    ## no critic
-        $params->{output_handler} = $null_handler->new();
+        use Script::Output::Null;
+        $params->{output_handler} = Script::Output::Null->new();
     }
 
 }

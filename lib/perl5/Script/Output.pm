@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010001;
 
-our @_output_methods = ();
+our @_output_methods;
 
 BEGIN {
     @_output_methods = qw/ info success warn fail wrapper_begin wrapper_end /;

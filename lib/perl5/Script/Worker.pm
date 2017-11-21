@@ -5,7 +5,6 @@ use warnings;
 use 5.010001;
 
 use Carp;
-
 use Scalar::Util qw/blessed/;
 
 BEGIN {
@@ -39,8 +38,7 @@ sub new {
     bless $self, $class;
 
     _defaultize($self, \%params);
-    _validate($self, $params{deploy_steps}, $params{deploy_attrs},
-        $params{deploy_attrs_for_output});
+    _validate($self, \%params);
     _initialize($self, %params);
 
     return $self;
@@ -53,11 +51,15 @@ sub _defaultize {
 }
 
 sub _validate {
-    my ($self, $deploy_steps, $deploy_args, $output_attrs) = @_;
+    my ($self, $params) = @_;
     croak "Invalid args in deploy_args: no such step in deploy_steps"
-        if grep { not exists $deploy_steps->{$_} } keys %$deploy_args;
+        if grep { not exists $params->{deploy_steps}->{$_} } keys %{$params->{deploy_attrs}};
     croak "Invalid attributes in output_attrs: no such step in deploy_steps"
-        if grep { not exists $deploy_steps->{$_} } keys %$output_attrs;
+        if grep { not exists $params->{deploy_steps}->{$_} } keys %{$params->{deploy_attrs_for_output}};
+
+    # Don't try to pass output_handler via params for deployer
+    delete $params->{deployer_params}->{output_handler}
+        if (exists $params->{deployer_params}->{output_handler});
 }
 
 sub _initialize {
@@ -65,22 +67,29 @@ sub _initialize {
 
     $self->{beauty_output} = $kwargs{beauty_output};
 
-    eval "use $kwargs{deployer}";    ## no critic
-    $self->{deployer} = $kwargs{deployer}->new(%{ $kwargs{deployer_params} });
-
     # Output handler.
     if (my $class = blessed $kwargs{output}
         and $kwargs{output}->isa('Script::Output'))
     {
         $self->{output_handler} = $kwargs{output};
     } else {
-        my $null_handler = "Script::Output::Null";
-        eval "use $null_handler";    ## no critic
-        $self->{output_handler} = $null_handler->new();
+        use Script::Output::Null;
+        $self->{output_handler} = Script::Output::Null->new();
     }
+
+    # Deployer package import and instance creation
+    eval "require $kwargs{deployer}"   ## no critic
+    or do {
+        confess "Cannot find deployer class $kwargs{deployer}!\n";
+    };
+    $self->{deployer} = $kwargs{deployer}->new(
+        output_handler  => $self->{output_handler},
+        %{ $kwargs{deployer_params} },
+    );
 
     $self->{deploy_steps} = $kwargs{deploy_steps};
     $self->{deploy_attrs} = $kwargs{deploy_attrs};
+
     $self->{output_attrs} = $kwargs{deploy_attrs_for_output};
 
     $self->{deploy_subs} = [];

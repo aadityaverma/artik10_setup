@@ -13,9 +13,10 @@ sub run {
     use Script::Output::Terminal;
     my $output = Script::Output::Terminal->new();
     my $worker = Script::Worker->new(
-        beauty_output => 1,
-        deployer      => "Deploy::Artik::Artik7",
-        deploy_steps  => [
+        beauty_output   => 1,
+        deployer        => "Deploy::Artik::Artik7",
+        output          => $output,
+        deploy_steps    => [
             'get_file',
             'unzip',
         ],
