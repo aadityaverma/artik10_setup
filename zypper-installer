@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+#title          :artik_tizen_zypper_install.sh
+#description    :This script installs deps for Zypper package manager in Tizen on Artik
+#author         :Tatyana Volkova (volkova.t@samsung.com)
+#date           :20170605
+#version        :0.1
+#usage          :./artik_tizen_zypper_install.sh
+#notes          :
+#bash_version   :4.3.48(1)-release
+#============================================================================
+
+# This script downloads and installs the packages needed to install Zypper package manager onto a newly installed Tizen OS.
+# The target computer is Samsung Artik (tested on 7 & 10) with Tizen v.3.0.
+# It should be run on host PC with Linux, which is connected to the Internet and connected to Artik computer via LAN
+# All the necessary packages weigh about 3 Mb total.
+#
+# Before running this script, you should do:
+# sdb connect IP_ADDRESS
+# where IP_ADDRESS is Artik's address in LAN (can be found using ifconfig on Artik)
+# After launching the script, you do "zypper update"
+# Then you can simply "zypper install" package name. It will install any package from the repo with all dependencies.
+
+set -uo pipefail
+
+# Terminal-agnostic variables: colors and style
+__TERM_NORMAL="$(tput sgr0)"
+__TERM_BOLD="$(tput bold)"
+__TERM_RED="$(tput setaf 1)"
+
+
+
+__BASE_TIZEN_REPO="https://download.tizen.org/releases/milestone/tizen"
+__TIZEN_VERSION="3.0.m2"
+__ARCH="armv7l"
+
+__TEMP_DIR="/tmp/artik-setup/cache"
+__PACKAGES=(
+    "bzip2-1.0.6-1.5.${__ARCH}.rpm"
+    "libsolv-0.6.4-3.4.${__ARCH}.rpm"
+    "libsolv-tools-0.6.4-3.4.${__ARCH}.rpm"
+    "pacrunner-0.7-3.5.${__ARCH}.rpm"
+    "pacrunner-libproxy-0.7-3.5.${__ARCH}.rpm"
+    "lsof-4.87-3.3.${__ARCH}.rpm"
+    "libzypp-14.27.0-3.6.${__ARCH}.rpm"
+    "libaugeas-1.3.0-3.6.${__ARCH}.rpm"
+    "zypper-1.11.11-3.5.${__ARCH}.rpm"
+)
+
+#####################
+## ~~  Helpers  ~~ ##
+#####################
+
+# shellcheck disable=2120
+_banner() {
+    local _len
+    local _ch=${1:-"~"}
+    local _console_len
+    _console_len=$(tput cols)
+
+    if [[ ${_console_len} -lt 40 ]]; then
+        _len=${_console_len}
+    else
+        _len=40
+    fi
+
+    printf "%*s\n" "$_len" | tr " " "$_ch"
+}
+
+# shellcheck disable=2119
+_print_with_banner() {
+    _banner
+    printf "%s\n" "$1"
+    _banner
+}
+
+_print_with_indent() {
+    local _symbol_arrow="➜"
+    printf "\t%s %s\n" "$_symbol_arrow" "$1"
+}
+
+######################
+## ~~  Functions ~~ ##
+######################
+
+## shellcheck disable=2154
+_prepare_artik() {
+    local _EXIT_STATUS_NO_IF=65
+    local _EXIT_STATUS_DEVICE_BUSY=66
+    local _EXIT_STATUS_NO_DEVICE=67
+
+    # Handilng exit status of `get-artik-ip.tcl` script
+    _prepare_artik::handle_exit_status() {
+        local _exit_code=$1
+
+        case $_exit_code in
+            $_EXIT_STATUS_NO_IF )
+                _prepare_artik::pretty_pre_dying "No such network interface"
+                ;;
+            $_EXIT_STATUS_DEVICE_BUSY )
+                _prepare_artik::pretty_pre_dying "Cannot connect"
+                ;;
+            $_EXIT_STATUS_NO_DEVICE )
+                _prepare_artik::pretty_pre_dying "No such device"
+                ;;
+        esac && exit 1
+    }
+
+    # Formated output of string
+    _prepare_artik::pretty_pre_dying() {
+        local _normal=${__TERM_NORMAL}
+        local _bold=${__TERM_BOLD}
+        local _red=${__TERM_RED}
+
+        local _msg="${_bold}${_red}Can't get Artik's IP!${_normal}"
+        local _reason=$1
+
+        printf "%s Reason: %s. Exit...\n" "$_msg" "${_reason,}" 2>&1
+    }
+
+    local _device=${1:-}
+
+    # Retrieving board IP address. In case of failure we just exit with message
+    # Disable shellcheck warning because we really knows that device path
+    # doesn't contain whitespaces
+    local _ip_addr
+    # shellcheck disable=2086
+    _ip_addr=$(./get-artik-ip.tcl $_device)
+    local _exit_code=$?
+    if [[ $_exit_code != 0 ]]; then
+        _prepare_artik::handle_exit_status $_exit_code
+    fi
+
+    sdb connect "$_ip_addr"
+    sdb root on
+}
+
+_fetch_packages() {
+    mkdir -p ${__TEMP_DIR}
+    for __file in "${__PACKAGES[@]}"; do
+        if [ ! -e "$__TEMP_DIR/$__file" ]; then
+            _print_with_indent "Downloading ${__file} from remote repo"
+            _download_rpm "$__file"
+        else
+            _print_with_indent "Fetching ${__file} from local cache"
+        fi
+    done
+}
+
+_download_rpm() {
+    local _repo_url
+    if [[ $1 =~ .*bzip.+.rpm ]]; then
+        _repo_url="/3.0.m2-base/latest/repos/arm"
+    else
+        _repo_url="/common_artik/latest/repos/arm-wayland"
+    fi
+    wget "$__BASE_TIZEN_REPO/$__TIZEN_VERSION/$_repo_url/packages/$__ARCH/$1"
+}
+
+_install_packages() {
+    local _remote_tmp_dir
+    _remote_tmp_dir="/tmp/packages"
+    sdb shell mkdir -p "$_remote_tmp_dir"
+    for __pkg in "${__PACKAGES[@]}"; do
+        sdb push "$__TEMP_DIR/$__pkg" "$_remote_tmp_dir"
+        sdb shell rpm -Uvh "$_remote_tmp_dir/$__pkg"
+    done
+    sdb shell rm -rf "$_remote_tmp_dir"
+}
+
+_zypper_add_repos() {
+    declare -A __repos
+    # shellcheck disable=2154
+    __repos["Base"]="3.0.m2-base/latest/repos/arm"
+    # shellcheck disable=2154
+    __repos["Common"]="common_artik/latest/repos/arm-wayland"
+
+    for __repo in "${!__repos[@]}"; do
+        local __repo_url
+        __repo_url="$__BASE_TIZEN_REPO/$__TIZEN_VERSION/${__repos[$__repo]}"
+        sdb shell zypper ar "$__repo_url $__repo"
+    done
+}
+
+__main() {
+    _prepare_tizen
+    _print_with_banner "Downloading packages to install zypper"
+    _fetch_packages
+    _print_with_banner "Uploading and installing packages to Artik"
+    _install_packages
+    _print_with_banner "Setting up repositories location"
+    _zypper_add_repos
+}
+
+_main() {
+    LANG=en_US.UTF-8
+
+    _prepare_artik "$@"
+}
+
+[[ "$0" == "${BASH_SOURCE[0]}" ]] && _main "$@"
