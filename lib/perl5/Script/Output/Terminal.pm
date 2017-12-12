@@ -8,7 +8,7 @@ use Carp;
 
 use parent qw/Script::Output/;
 
-BEGIN {
+CHECK {
     for my $m (@Script::Output::_output_methods) {
         if (not __PACKAGE__->can("_${m}_impl")) {
             confess "Method _${m}_impl is not implemented! \n";
