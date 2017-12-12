@@ -9,7 +9,6 @@ foreach opt $argv {
         set argv [lsearch -all -inline -not -exact $argv $opt]
         set output_opts(is_interactive) true
         incr argc -1
-        break
     }
 }
 
@@ -108,7 +107,7 @@ proc connect_device {login_params device reverse_prompt} {
     set attempts 0
 
     puts [exp_pid]
-	if {! [catch {exec ps [exp_pid]} std_out] == 0} { 
+	if {! [catch {exec ps [exp_pid]} std_out] == 0} {
 	   puts "screen with [exp_pid] has been terminated"
        exit 66
 	}
