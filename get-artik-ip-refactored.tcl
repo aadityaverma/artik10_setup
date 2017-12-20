@@ -142,7 +142,17 @@ namespace eval ::Deployer::Artik::RegexpBuilder {
 
     namespace export re_logined_prompt
 
-    proc re_logined_prompt {{prompt ""} {dist_prompts ""}} {
+    proc re_logined_prompt {{prompt ""} {dist_prompts ""} args} {
+        # Retrieve optional switches
+        while {[string equal [string index [lindex $args 0] 0] "-"]}
+            set switch_str [lindex $args 0]
+            set args [lreplace $args 0 0]
+            switch $switch_str {
+                "-defaults" {
+                    set use_default 
+                }
+            }
+        }
         # Test whether proc is called with default parameters
         if {[string length $prompt] > 0} {
             # Test whether prompt is not prompt's regexp
@@ -157,7 +167,9 @@ namespace eval ::Deployer::Artik::RegexpBuilder {
                                         varname at caller stack level"
                 }
             }
-            # Test whether dist_prompts contains name of variable
+            # Test whether dist_prompts contains name of variable or it is not
+            # a list.In second case we return create list from values of
+            # ::Deployer::Artik re_prompt dict (os -> os_version -> prompt)
             if {
                 (
                     ![string is list $dist_prompts] ||
@@ -169,10 +181,12 @@ namespace eval ::Deployer::Artik::RegexpBuilder {
                 unset dist_prompts
                 upvar 1 $dist_prompts_name dist_prompts
             } elseif {
-                [string is list $dist_prompts] &&
-                ([llength $dist_prompts] > 1)
+                !(
+                    [string is list $dist_prompts] &&
+                    ([llength $dist_prompts] > 1)
+                )
             } then {
-                
+
             }
         } else {
             unset prompt
