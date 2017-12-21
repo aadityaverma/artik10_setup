@@ -142,17 +142,49 @@ namespace eval ::Deployer::Artik::RegexpBuilder {
 
     namespace export re_logined_prompt
 
-    proc re_logined_prompt {{prompt ""} {dist_prompts ""} args} {
+    proc re_logined_prompt {args} {
+        # Default values for switch-style parameters
+        set use_default true
+
         # Retrieve optional switches
-        while {[string equal [string index [lindex $args 0] 0] "-"]}
-            set switch_str [lindex $args 0]
+        while {[string equal [string index [lindex $args 0] 0] "-"]} {
+            switch [lindex $args 0] {
+                "-no-defaults" {
+                    set use_default false
+                }
+            }
             set args [lreplace $args 0 0]
-            switch $switch_str {
-                "-defaults" {
-                    set use_default 
+        }
+
+        switch [llength $args] {
+            0 {
+                if {$use_default} {
+                    namespace upvar ::Deployer::Artik re_prompt prompt
+                    set dist_prompts {}
+                    variable ::Deployer::Artik::os_specific
+                    dict for {os os_dict} $::Deployer::Artik::os_specific {
+                        dict for {os_version os_version_dict} $os_dict {
+                            dict for {os_param os_value} $os_version_dict {
+                                if {[string equal $os_param "prompt"] &&
+                                    [string length $os_value] > 0} {
+                                    lappend dist_prompts $os_value
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    return -code error "Can't build necessary variables with\
+                                        -no-defaults option and without providing\
+                                        them as formal arguments"
+                }
+            }
+            1 {
+                if {[regexp -expanded {^ .* \( .* \)\$ $} $prompt]} {
+                    
                 }
             }
         }
+
         # Test whether proc is called with default parameters
         if {[string length $prompt] > 0} {
             # Test whether prompt is not prompt's regexp
