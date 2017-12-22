@@ -145,12 +145,16 @@ namespace eval ::Deployer::Artik::RegexpBuilder {
     proc re_logined_prompt {args} {
         # Default values for switch-style parameters
         set use_default true
+        set use_as_names false
 
         # Retrieve optional switches
         while {[string equal [string index [lindex $args 0] 0] "-"]} {
             switch [lindex $args 0] {
                 "-no-defaults" {
                     set use_default false
+                }
+                "-as-names" {
+                    set use_as_names true
                 }
             }
             set args [lreplace $args 0 0]
@@ -179,62 +183,54 @@ namespace eval ::Deployer::Artik::RegexpBuilder {
                 }
             }
             1 {
-                if {[regexp -expanded {^ .* \( .* \)\$ $} $prompt]} {
-                    
-                }
-            }
-        }
-
-        # Test whether proc is called with default parameters
-        if {[string length $prompt] > 0} {
-            # Test whether prompt is not prompt's regexp
-            if {![regexp -expanded {^ .* \( .* \)\$ $} $prompt]} {
-                # If it is not
-                if {[uplevel 1 [info exists $dist_prompts]]} {
-                    set prompt_name $prompt
-                    unset prompt
-                    upvar 1 $prompt_name prompt
+                set prompt_parameter [lindex $args 0]
+                if {[uplevel 1 [list info exists $prompt_parameter]]
+                    && $use_as_names} {
+                    upvar 1 $prompt_parameter prompt
+                } elseif {[regexp -expanded {^ .* \( .* \)\$ $} $prompt_parameter]} {
+                    set prompt $prompt_parameter
+                    set args [lreplace $args 0 0]
                 } else {
-                    return -code error "Expected regexp string for prompt or\
-                                        varname at caller stack level"
+                    return -code error "Can't set prompt parameter with supplied\
+                                        arguments"
                 }
+                set args [lreplace $args 0 0]
             }
-            # Test whether dist_prompts contains name of variable or it is not
-            # a list.In second case we return create list from values of
-            # ::Deployer::Artik re_prompt dict (os -> os_version -> prompt)
-            if {
-                (
-                    ![string is list $dist_prompts] ||
-                    ([llength $dist_prompts] == 1)
-                ) &&
-                [uplevel 1 [info exists $dist_prompts]]
-            } then {
-                set dist_prompts_name $dist_prompts
-                unset dist_prompts
-                upvar 1 $dist_prompts_name dist_prompts
-            } elseif {
-                !(
-                    [string is list $dist_prompts] &&
-                    ([llength $dist_prompts] > 1)
-                )
-            } then {
-
-            }
-        } else {
-            unset prompt
-            unset dist_prompts
-            set dist_prompts {}
-            variable ::Deployer::Artik::os_specific
-            namespace upvar ::Deployer::Artik re_prompt prompt
-            dict for {os os_dict} $::Deployer::Artik::os_specific {
-                dict for {os_version os_version_dict} $os_dict {
-                    dict for {os_param os_value} $os_version_dict {
-                        if {[string equal $os_param "prompt"] &&
-                            [string length $os_value] > 0} {
-                            lappend dist_prompts $os_value
-                        }
-                    }
+            2 {
+                set prompt_parameter [lindex $args 0]
+                set dist_spec_parameter [lindex $args 1]
+                if {[uplevel 1 [list info exists $prompt_parameter]]
+                    && $use_as_names} {
+                    upvar 1 $prompt_parameter prompt
+                } elseif {[regexp -expanded {^ .* \( .* \)\$ $} $prompt_parameter]} {
+                    set prompt $prompt_parameter
+                    set args [lreplace $args 0 0]
+                } else {
+                    return -code error "Can't set prompt parameter with supplied\
+                                        arguments"
                 }
+                if {[uplevel 1 [list info exists $dist_spec_parameter]]
+                    && $use_as_names} {
+                    upvar 1 $dist_spec_parameter dist_prompts
+                } else {
+                    set dist_prompts $dist_spec_parameter
+                }
+                set args [lreplace $args 0 1]
+            }
+            default {
+                set prompt_parameter [lindex $args 0]
+                if {[uplevel 1 [list info exists $prompt_parameter]]
+                    && $use_as_names} {
+                    upvar 1 $prompt_parameter prompt
+                } elseif {[regexp -expanded {^ .* \( .* \)\$ $} $prompt_parameter]} {
+                    set prompt $prompt_parameter
+                    set args [lreplace $args 0 0]
+                } else {
+                    return -code error "Can't set prompt parameter with supplied\
+                                        arguments"
+                }
+                set dist_prompts [lrange $args 1 end]
+                set args [lreplace $args 0 end]
             }
         }
     }
