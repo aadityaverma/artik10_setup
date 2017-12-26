@@ -142,7 +142,7 @@ namespace eval ::Deployer::Artik::RegexpBuilder {
 
     namespace export re_logined_prompt
 
-    proc re_logined_prompt {args} {
+    proc re-logined-prompt {args} {
         # Default values for switch-style parameters
         set use_default true
         set use_as_names false
@@ -160,18 +160,27 @@ namespace eval ::Deployer::Artik::RegexpBuilder {
             set args [lreplace $args 0 0]
         }
 
+        dict set parse_args {
+            {re_prompt}     ""
+            {dist_prompts}  ""
+        }
+
         switch [llength $args] {
+            # 0 arguments — only default values if possible
             0 {
                 if {$use_default} {
+                    # Set prompt base regexp
+                    dict set parse_args { {re_prompt} "-default-upvar" }
                     namespace upvar ::Deployer::Artik re_prompt prompt
+                    # Set distribution-specific prompts
+                    dict set parse_args { {dist_prompts} "-default-listify" }
                     set dist_prompts {}
                     variable ::Deployer::Artik::os_specific
                     dict for {os os_dict} $::Deployer::Artik::os_specific {
                         dict for {os_version os_version_dict} $os_dict {
-                            dict for {os_param os_value} $os_version_dict {
-                                if {[string equal $os_param "prompt"] &&
-                                    [string length $os_value] > 0} {
-                                    lappend dist_prompts $os_value
+                            dict with os_version_dict {
+                                if {[string length $prompt] > 0} {
+                                    lappend dist_prompts $prompt
                                 }
                             }
                         }
@@ -182,56 +191,87 @@ namespace eval ::Deployer::Artik::RegexpBuilder {
                                         them as formal arguments"
                 }
             }
+            # 1 argument — regexp for prompt + default value for dist prompts if
+            # possible
             1 {
+                # Set prompt base regexp
+                dict set parse_args { {re_prompt} "-upvar-or-raw" }
                 set prompt_parameter [lindex $args 0]
                 if {[uplevel 1 [list info exists $prompt_parameter]]
                     && $use_as_names} {
                     upvar 1 $prompt_parameter prompt
                 } elseif {[regexp -expanded {^ .* \( .* \)\$ $} $prompt_parameter]} {
                     set prompt $prompt_parameter
-                    set args [lreplace $args 0 0]
                 } else {
                     return -code error "Can't set prompt parameter with supplied\
                                         arguments"
                 }
-                set args [lreplace $args 0 0]
+                if {$use_default} {
+                    # Set distribution-specific prompts
+                    dict set parse_args { {dist_prompts} "-default-listify" }
+                    set dist_prompts {}
+                    variable ::Deployer::Artik::os_specific
+                    dict for {os os_dict} $::Deployer::Artik::os_specific {
+                        dict for {os_version os_version_dict} $os_dict {
+                            dict with os_version_dict {
+                                if {[string length $prompt] > 0} {
+                                    lappend dist_prompts $prompt
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    return -code error "Can't build necessary variables with\
+                                        -no-defaults option and without providing\
+                                        them as formal arguments"
+
+                }
             }
+            # 2 arguments — regexp for prompt + list of one element or name of upvar
+            # (depending from switch)
             2 {
+                # Set prompt base regexp
+                dict set parse_args { {re_prompt} "-upvar-or-raw" }
                 set prompt_parameter [lindex $args 0]
-                set dist_spec_parameter [lindex $args 1]
                 if {[uplevel 1 [list info exists $prompt_parameter]]
                     && $use_as_names} {
                     upvar 1 $prompt_parameter prompt
                 } elseif {[regexp -expanded {^ .* \( .* \)\$ $} $prompt_parameter]} {
                     set prompt $prompt_parameter
-                    set args [lreplace $args 0 0]
                 } else {
                     return -code error "Can't set prompt parameter with supplied\
                                         arguments"
                 }
+                # Set distribution-specific prompts
+                dict set parse_args { {dist_prompts} "-upvar-or-raw" }
+                set dist_spec_parameter [lindex $args 1]
                 if {[uplevel 1 [list info exists $dist_spec_parameter]]
                     && $use_as_names} {
                     upvar 1 $dist_spec_parameter dist_prompts
                 } else {
                     set dist_prompts $dist_spec_parameter
                 }
-                set args [lreplace $args 0 1]
             }
+            # 3 or more arguments — regexp for prompt + list of dis-specific prompts
             default {
+                # Set prompt base regexp
+                dict set parse_args { {re_prompt} "-upvar-or-raw" }
                 set prompt_parameter [lindex $args 0]
                 if {[uplevel 1 [list info exists $prompt_parameter]]
                     && $use_as_names} {
                     upvar 1 $prompt_parameter prompt
                 } elseif {[regexp -expanded {^ .* \( .* \)\$ $} $prompt_parameter]} {
                     set prompt $prompt_parameter
-                    set args [lreplace $args 0 0]
                 } else {
                     return -code error "Can't set prompt parameter with supplied\
                                         arguments"
                 }
+                # Set distribution-specific prompts
+                dict set parse_args { {dist_prompts} "-listify" }
                 set dist_prompts [lrange $args 1 end]
-                set args [lreplace $args 0 end]
             }
+            # Clean args
+            set args [lreplace $args 0 end]
         }
     }
 
