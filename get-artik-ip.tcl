@@ -65,12 +65,15 @@ proc setup {} {
     dict set reverse_prompt "artik"     "Tizen 3.0"
 
     append re_os_info {(?s)[\n\s.]*?(}
+    puts $re_os_info
     foreach {os_name} [dict keys $login_params] {
         if {! [string equal $os_name "Tizen 3.0"]} {
             append re_os_info "$os_name|"
         }
     }
+    puts $re_os_info
     regsub {(.*?)\|$} $re_os_info {\1)[\n\s.]*} re_os_info
+    puts $re_os_info
 
     log_user 0
 }
@@ -112,7 +115,7 @@ proc connect_device {login_params device reverse_prompt} {
        exit 66
 	}
 
-    exec pgrep {^screen}
+    # exec pgrep {^screen}
 
     send -- "\r"
     expect {
