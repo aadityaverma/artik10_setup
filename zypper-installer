@@ -117,18 +117,18 @@ _prepare_artik() {
         printf "%s Reason: %s. Exit...\n" "$_msg" "${_reason,}" 2>&1
     }
 
-    local _device=${1:-}
+    # local _device=${1:-}
 
     # Retrieving board IP address. In case of failure we just exit with message
     # Disable shellcheck warning because we really knows that device path
     # doesn't contain whitespaces
-    local _ip_addr
+    local _ip_addr=${1:-}
     # shellcheck disable=2086
-    _ip_addr=$(./get-artik-ip.tcl $_device)
-    local _exit_code=$?
-    if [[ $_exit_code != 0 ]]; then
-        _prepare_artik::handle_exit_status $_exit_code
-    fi
+    # _ip_addr=$(./get-artik-ip.tcl $_device)
+    # local _exit_code=$?
+    # if [[ $_exit_code != 0 ]]; then
+    #     _prepare_artik::handle_exit_status $_exit_code
+    # fi
 
     sdb connect "$_ip_addr"
     sdb root on
@@ -182,7 +182,7 @@ _zypper_add_repos() {
 }
 
 __main() {
-    _prepare_tizen
+    _prepare_artik
     _print_with_banner "Downloading packages to install zypper"
     _fetch_packages
     _print_with_banner "Uploading and installing packages to Artik"
@@ -193,8 +193,8 @@ __main() {
 
 _main() {
     LANG=en_US.UTF-8
-
-    _prepare_artik "$@"
+    __main "$@"
+    # _prepare_artik "$@"
 }
 
 [[ "$0" == "${BASH_SOURCE[0]}" ]] && _main "$@"
