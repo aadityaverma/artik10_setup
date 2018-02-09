@@ -6,10 +6,10 @@ use 5.010001;
 
 use Carp;
 
-use parent qw/Script::Output/;
+use parent qw/Script::OutputLLBase/;
 
 BEGIN {
-    for my $m (@Script::Output::_output_methods) {
+    for my $m (@Script::Output::Base::_output_methods) {
         if (not __PACKAGE__->can("_${m}_impl")) {
             confess "Method _${m}_impl is not implemented! \n";
         }
@@ -125,29 +125,6 @@ sub wrap_output {
     }
 
     return @result;
-}
-
-sub BeautyTerm : ATTR(CODE) {
-    my ($package, $typeglob, $func, $attr, $data) = @_;
-
-    my %kwargs = ();
-    %kwargs = %$data if defined $data;
-    my ($msg_start, %msgs_end) = shift @$data;
-    for my $msg ('msg_ok', 'msg_warn', 'msg_fail') {
-        if (exists $kwargs{$msg}) {
-            $msgs_end{$msg} = $kwargs{$msg};
-            delete $kwargs{$msg};
-        }
-    }
-
-    use Term::Spinner::Color::Beautyfied;
-    my $spin = Term::Spinner::Color::Beautyfied->new(%kwargs);
-    no strict 'refs';    ## no critic
-    *{$typeglob} = sub {
-        $spin->auto_start($msg_start);
-        $func->(@_);
-        $spin->auto_ok($msgs_end{msg_ok});
-    };
 }
 
 1;

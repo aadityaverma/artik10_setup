@@ -6,10 +6,10 @@ use 5.010001;
 
 use Carp;
 
-use parent qw/Script::Output/;
+use parent qw/Script::Output::Base/;
 
 BEGIN {
-    for my $m (@Script::Output::_output_methods) {
+    for my $m (@Script::Output::Base::_output_methods) {
         if (not __PACKAGE__->can("_${m}_impl")) {
             confess "Method _${m}_impl is not implemented! \n";
         }

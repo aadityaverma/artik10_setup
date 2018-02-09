@@ -9,7 +9,15 @@ use lib File::Spec->catdir($FindBin::Bin, '..', 'lib', 'perl5');
 
 use Script::Deploy;
 
-Script::Deploy->run();
+# Script::Deploy->run();
+
 # use Script::Output; if (Script::Output->new()->can('warn')) { say "Yay!" };
 # use Deploy::Artik::Artik7;
 # Deploy::Artik::Artik7->new()->process_plugin()
+
+use Term::Spinner::Color;
+
+my $spinner = Term::Spinner::Color->new();
+$spinner->auto_start("sleeping");
+sleep 5;
+$spinner->auto_ok("Yeeeeee");
