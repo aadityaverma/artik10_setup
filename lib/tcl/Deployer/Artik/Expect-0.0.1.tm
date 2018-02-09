@@ -139,6 +139,7 @@ namespace eval ::Deployer::Artik::Expect {
             }
         }
 
+        return -code error "Timeout"
     }
 
     proc login {os os_version args} {
