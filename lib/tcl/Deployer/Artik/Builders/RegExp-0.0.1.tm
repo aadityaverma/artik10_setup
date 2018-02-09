@@ -9,7 +9,8 @@ namespace eval ::Deployer::Artik::Builders::RegExp {
     namespace export re-login-prompt \
                 re-login-password-prompt \
                 re-logined-prompt \
-                dict-of-re-logins
+                dict-of-re-logins \
+                re-parsing-ip-output
 
     proc re-logined-prompt {re_prompt} {
        
@@ -60,5 +61,13 @@ namespace eval ::Deployer::Artik::Builders::RegExp {
         dict set result_dict {logined} [re-logined-prompt $for_logined]
 
         return $result_dict
+    }
+
+    proc re-parsing-ip-output {} {
+        set iface_name {(\w+)}
+        set ip_addr {(\d+\.\d+\.\d+\.\d+)}
+        set mask {(\d+)}
+        return [append "" \
+            {\d+:\s} $iface_name {[^\n]*\n} {\s*inet\s*} $ip_addr {/} $mask {[^\n]*} ]
     }
 }

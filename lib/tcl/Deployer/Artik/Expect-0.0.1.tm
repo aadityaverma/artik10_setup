@@ -175,21 +175,23 @@ namespace eval ::Deployer::Artik::Expect {
 
         set spawn_id [dict get $expect_internals {spawned_pid}]
 
-        set cmd_ip_get_ipv4 "ip -f inet addr show"
+        set cmd [dict create {*}"
+            {cmd}   ip
+            {opts}  {-f inet addr show}
+        "]
 
         set list_ip {}
 
-        expect -re [ ::Deployer::Artik::Builders::RegExp::re-logined-prompt $re_logined_prompt ]
-        send -- "$cmd_ip_get_ipv4\r"
+        expect -re [::Deployer::Artik::Builders::RegExp::re-logined-prompt $re_logined_prompt]
+        send -- "[dict get $cmd cmd] [dict get $cmd opts]\r"
 
         expect -re [::Deployer::Artik::Builders::RegExp::re-logined-prompt $re_logined_prompt]
-        set matchTuples [regexp -all -inline {\d+\:\s(\w+)[^\n]*\n\s*inet\s*(\d+\.\d+\.\d+\.\d+)\/(\d+)[^\n]*} $expect_out(buffer)]
-        foreach {group0 group1 group2 group3} $matchTuples {
-            if {![regexp {^(?:lo).*} $group1]} {
-                lappend list_ip "$group1 $group2 $group3"
+        set matches [regexp -all -inline [::Deployer::Artik::Builders::RegExp::re-parsing-ip-output] $expect_out(buffer)]
+        foreach {group0 ifname ip mask} $matches {
+            if {![string equal $ifname "lo"] && [string equal $ifname $iface]} {
+                lappend list_ip [join [list $ifname $ip $mask] " "]
             }
         }
-
         return $list_ip
     }
 
